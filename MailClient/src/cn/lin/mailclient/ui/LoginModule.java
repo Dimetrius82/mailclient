@@ -3,10 +3,30 @@ package cn.lin.mailclient.ui;
 /**
  * Created by strawberrylin on 17-4-15.
  */
+import cn.lin.mailclient.object.User;
+
+import javax.security.auth.login.LoginException;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.net.*;
+import java.io.*;
+import sun.misc.*;
+import java.util.*;
+import java.util.logging.SocketHandler;
+
+import static cn.lin.util.SwingConsole.*;
 
 public class LoginModule extends JFrame{
+    private User user;
+    private String mailServer;
+    private String response ;
+    private String hostName;
+    private BufferedReader inFromServer;
+    private PrintWriter outToServer;
+    private String encoderUser;
+    private String encoderPwd;
     private ImageIcon image = new ImageIcon("./images/envelop-close.gif");
     private JLabel pictureLabel = new JLabel(image);
     //用户名
@@ -25,7 +45,11 @@ public class LoginModule extends JFrame{
     private Box btnBox =  Box.createHorizontalBox();
     private Box mainBox = Box.createVerticalBox();
 
-    public  LoginModule(){
+
+    public  LoginModule() throws Exception{
+        this.hostName = InetAddress.getLocalHost().getHostName();
+        this.mailServer = "smtp.163.com";
+        this.response = "";
         this.setLayout(new FlowLayout());
         this.pictureBox.add(Box.createHorizontalStrut(30));
         this.pictureBox.add(pictureLabel);
@@ -51,15 +75,75 @@ public class LoginModule extends JFrame{
         this.btnBox.add(this.cancleBtn);
         this.btnBox.add(Box.createHorizontalStrut(30));
         //主界面
-        this.mainBox.add(this.mainBox.createVerticalStrut(30));
+        this.mainBox.add(Box.createVerticalStrut(30));
         this.mainBox.add(this.pictureBox);
-        this.mainBox.add(this.mainBox.createVerticalStrut(30));
+        this.mainBox.add(Box.createVerticalStrut(30));
         this.mainBox.add(this.userBox);
-        this.mainBox.add(this.mainBox.createVerticalStrut(30));
+        this.mainBox.add(Box.createVerticalStrut(30));
         this.mainBox.add(this.paswBox);
-        this.mainBox.add(this.mainBox.createVerticalStrut(30));
+        this.mainBox.add(Box.createVerticalStrut(30));
         this.mainBox.add(this.btnBox);
-        this.mainBox.add(this.mainBox.createVerticalStrut(50));
+        this.mainBox.add(Box.createVerticalStrut(50));
         this.add(mainBox);
+        this.setLocation(300,200);
+        this.pack();
+
+        initialListener();
+    }
+    private void initialListener(){
+        this.cancleBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.exit(0);
+            }
+        });
+        this.confirmBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                confirm();
+            }
+        });
+    }
+    private void confirm(){
+        user = new User(this.userText.getText(),this.passwordText.getText());
+        if(user.getUserName().equals("")){
+            JOptionPane.showConfirmDialog(this,"请输入用户名","警告",JOptionPane.OK_CANCEL_OPTION);
+            return;
+        }
+        try{
+            Socket s = new Socket(mailServer,25);
+            inFromServer = new BufferedReader(new InputStreamReader(s.getInputStream()));
+            outToServer = new PrintWriter(s.getOutputStream(),true);
+            this.response =inFromServer.readLine();
+            encoderUser =Base64.getEncoder().encodeToString(user.getUserName().getBytes("utf-8"));
+            encoderPwd = Base64.getEncoder().encodeToString(user.getPassWord().getBytes("utf-8"));
+            outToServer.println("EHLO " + hostName);
+            for(int i = 0; i < 7; i++){
+                response = inFromServer.readLine();
+            }
+            outToServer.println("AUTH LOGIN ");
+            //读入来自服务器的应答，并显示在屏幕上
+            response = inFromServer.readLine();
+            outToServer.println(encoderUser);
+            //读入来自服务器的应答，并显示在屏幕上
+            response = inFromServer.readLine();
+            outToServer.println(encoderPwd);
+            response = inFromServer.readLine();
+            if(response.equals("235 Authentication successful")){
+                this.setVisible(false);
+                s.close();
+                run(new MailMain(user),425,300);
+            }
+            else{
+                JOptionPane.showConfirmDialog(this,"登陆失败","错误",JOptionPane.OK_CANCEL_OPTION);
+                this.userText.setText("");
+                this.passwordText.setText("");
+                return;
+            }
+
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
     }
 }
