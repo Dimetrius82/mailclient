@@ -7,11 +7,11 @@ import java.util.Date;
 import java.util.DoubleSummaryStatistics;
 import java.util.List;
 public class Mail {
-    private String xmlName;
+    private String ID;
     private String sender;
     private List<String>receiver;
     private String subject;
-    private Date receiveDate;
+    private String receiveDate;
     private String size;
     private boolean hasRead;
     private String content;
@@ -19,24 +19,24 @@ public class Mail {
     private List<FileObject> files;
     private String from;
 
-    public Mail(String xmlName, String sender, List<String> receiver, String subject, Date receiveDate, String size, boolean hasRead, String content, String from) {
-        this.xmlName = xmlName;
+    public Mail(String ID, String sender, List<String> receiver, String subject, String receiveDate, String size, boolean hasRead, String content, String from) {
+        this.ID = ID;
         this.sender = sender;
         this.receiver = receiver;
         this.subject = subject;
         this.receiveDate = receiveDate;
-        this.size = size;
+        this.size = String.valueOf(getSize(Integer.valueOf(size)));
         this.hasRead = hasRead;
         this.content = content;
         this.from = from;
     }
 
-    public String getXmlName() {
-        return xmlName;
+    public String getID() {
+        return ID;
     }
 
-    public void setXmlName(String xmlName) {
-        this.xmlName = xmlName;
+    public void setID(String ID) {
+        this.ID = ID;
     }
 
     public String getSender() {
@@ -63,11 +63,11 @@ public class Mail {
         this.subject = subject;
     }
 
-    public Date getReceiveDate() {
+    public String getReceiveDate() {
         return receiveDate;
     }
 
-    public void setReceiveDate(Date receiveDate) {
+    public void setReceiveDate(String receiveDate) {
         this.receiveDate = receiveDate;
     }
 

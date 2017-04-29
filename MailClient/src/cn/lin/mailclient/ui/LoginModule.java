@@ -46,8 +46,13 @@ public class LoginModule extends JFrame{
     private Box mainBox = Box.createVerticalBox();
 
 
-    public  LoginModule() throws Exception{
-        this.hostName = InetAddress.getLocalHost().getHostName();
+    public  LoginModule(){
+        try{
+            this.hostName = InetAddress.getLocalHost().getHostName();
+        }catch(UnknownHostException e){
+            e.printStackTrace();
+        }
+
         this.mailServer = "smtp.163.com";
         this.response = "";
         this.setLayout(new FlowLayout());
