@@ -71,8 +71,6 @@ public class MailFrame extends JFrame{
         //this.mailSender = mailMain.getMailSender();
         this.toolBar.add(this.send).setToolTipText("发送");
         this.toolBar.addSeparator();
-        this.toolBar.add(this.saveOut).setToolTipText("保存至发件箱");
-        this.toolBar.addSeparator();
         this.toolBar.add(this.saveDraft).setToolTipText("保存至草稿箱");
         this.toolBar.addSeparator();
         this.toolBar.add(this.upFile).setToolTipText("上传附件");

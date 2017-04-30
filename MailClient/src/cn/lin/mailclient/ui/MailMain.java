@@ -16,6 +16,7 @@ import java.util.Date;
 
 import cn.lin.box.*;
 import cn.lin.mailclient.object.*;
+import com.sun.xml.internal.fastinfoset.sax.SystemIdResolver;
 import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 
 import java.awt.event.ActionEvent;
@@ -30,7 +31,7 @@ import java.net.UnknownHostException;
 import java.util.*;
 import java.util.List;
 
-public class MailMain extends JFrame{
+public class MailMain extends JFrame implements Runnable{
     private User user;
     private String mailServer;
     private String response ;
@@ -52,10 +53,9 @@ public class MailMain extends JFrame{
     private JScrollPane filePane;
     private JList fileList;
     private JToolBar toolBar = new JToolBar();
+    private  MailBox box;
     //收件箱
     private List<Mail> receiveMails;
-    //发件箱
-    private List<Mail> sendMails;
     //已发送邮件
     private List<Mail> sendedMails;
     //草稿箱
@@ -86,7 +86,7 @@ public class MailMain extends JFrame{
     private Action receive = new AbstractAction("刷新") {
         @Override
         public void actionPerformed(ActionEvent e) {
-
+            mouseSelect();
         }
     };
     private Action send = new AbstractAction("发送") {
@@ -233,7 +233,6 @@ public class MailMain extends JFrame{
         DefaultMutableTreeNode root = new DefaultMutableTreeNode();
         root.add(new DefaultMutableTreeNode(new WriteBox()));
         root.add(new DefaultMutableTreeNode(new ReceiveBox()));
-        root.add(new DefaultMutableTreeNode(new SendBox()));
         root.add(new DefaultMutableTreeNode(new SentBox()));
         root.add(new DefaultMutableTreeNode(new DraftBox()));
         root.add(new DefaultMutableTreeNode(new DeletedBox()));
@@ -244,8 +243,6 @@ public class MailMain extends JFrame{
         //隐藏根节点
         tree.setRootVisible(false);
         //设置节点处理类
-        //SailTreeCellRenderer cellRenderer = new SailTreeCellRenderer();
-        //tree.setCellRenderer(cellRenderer);
         return tree;
     }
 
@@ -280,8 +277,9 @@ public class MailMain extends JFrame{
         this.mailListTable.getColumn("ID").setMinWidth(0);
         this.mailListTable.getColumn("ID").setMinWidth(0);
         this.mailListTable.getColumn("ID").setMaxWidth(0);
-        this.mailListTable.getColumn("发件人").setMinWidth(200);
-        this.mailListTable.getColumn("主题").setMinWidth(320);
+        this.mailListTable.getColumn("发件人").setMinWidth(185);
+        this.mailListTable.getColumn("收件人").setMinWidth(185);
+        this.mailListTable.getColumn("主题").setMinWidth(150);
         this.mailListTable.getColumn("日期").setMinWidth(130);
         this.mailListTable.getColumn("大小").setMinWidth(80);
         this.mailListTable.setRowHeight(30);
@@ -296,6 +294,7 @@ public class MailMain extends JFrame{
             for(Mail m : mails){
                 Vector v = new Vector();
                 v.add(m.getID());
+                v.add(m.getReceiver());
                 v.add(m.getSender());
                 v.add(m.getSubject());
                 v.add(m.getReceiveDate());
@@ -310,7 +309,7 @@ public class MailMain extends JFrame{
     private Vector getListColumn() {
         Vector columns = new Vector();
         columns.add("ID");
-        //columns.add("打开");
+        columns.add("收件人");
         columns.add("发件人");
         columns.add("主题");
         columns.add("日期");
@@ -321,25 +320,60 @@ public class MailMain extends JFrame{
         this.mailFrame.setVisible(true);
     }
 
+    private void delete(){
+
+    }
+
     public  void mouseSelect(){
-        MailBox box;
         TreePath treePath = this.tree.getSelectionPath();
         if(treePath != null){
             DefaultMutableTreeNode treeNode = (DefaultMutableTreeNode)treePath.getLastPathComponent();
             box = (MailBox)treeNode.getUserObject();
-            if(box instanceof ReceiveBox){
-                getReceiveBox();
-                this.currentMails = this.receiveMails;
-            }else if(box instanceof SendBox){
-                this.currentMails = sendMails;
-            }else if(box instanceof SentBox){
-                this.currentMails = sendedMails;
-            }else if(box instanceof DraftBox){
-                this.currentMails = draftMails;
-            }else if (box instanceof DeletedBox){
-                this.currentMails = deleteMails;
+            if(box instanceof WriteBox){
+                write();
             }
-            refreshTable();
+            if(box instanceof ReceiveBox){
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        receiveMails = getBoxData("INBOX");
+                        currentMails = receiveMails;
+                        refreshTable();
+                        cleanMailInfo();
+                    }
+                }).start();
+            }else if(box instanceof SentBox){
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        sendedMails = getBoxData("&XfJT0ZAB-");
+                        currentMails = sendedMails;
+                        refreshTable();
+                        cleanMailInfo();
+                    }
+                }).start();
+            }else if(box instanceof DraftBox){
+                System.out.println("childThread");
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        draftMails = getBoxData("&g0l6P3ux-");
+                        currentMails = draftMails;
+                        refreshTable();
+                        cleanMailInfo();
+                    }
+                }).start();
+            }else if (box instanceof DeletedBox){
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        deleteMails = getBoxData("&XfJSIJZk-");
+                        currentMails = deleteMails;
+                        refreshTable();
+                        cleanMailInfo();
+                    }
+                }).start();
+            }
         }
     }
 
@@ -349,14 +383,13 @@ public class MailMain extends JFrame{
         setTableView();
     }
 
-    public void getReceiveBox(){
+    public List<Mail> getBoxData(String selectBox){
         String from ="";
         String subject = "";
         String date = "";
         String content = "";
         String id = "";
         String size ="";
-        String box = "INBOX";
         List<Mail> receiveMailsTemp = new ArrayList<>();
 
         int sumMail = 0;
@@ -365,10 +398,9 @@ public class MailMain extends JFrame{
         String mailNum;
         try{
             connect();
-            this.response = inFromServer.readLine();
             outToServer.println("A01 LOGIN " + user.getUserName()+" "+user.getPassWord());
             response = inFromServer.readLine();
-            outToServer.println("A02 SELECT INBOX");
+            outToServer.println("A02 SELECT " + selectBox);
 
             for(int i = 0;i < 6;i ++){
                 response = inFromServer.readLine();
@@ -381,17 +413,17 @@ public class MailMain extends JFrame{
             for(int i = sumMail;i > 0;i -- ) {
                 mailNum = String.valueOf(i);
                 outToServer.println("A03 FETCH " + mailNum + " BODY[HEADER.FIELDS (FROM)]");
-                from = getContext("From");
+                from = getFromSub("From");
 
                 outToServer.println("A04 FETCH " + mailNum + " BODY[HEADER.FIELDS (TO)]");
                 List<String> to = new ArrayList<String>();
-                to.add(getContext("To"));
+                to = getTo();
 
                 outToServer.println("A05 FETCH " + mailNum + " BODY[HEADER.FIELDS (DATE)]");
                 date = getDate("Date");
 
                 outToServer.println("A06 FETCH " + mailNum + " BODY[HEADER.FIELDS (SUBJECT)]");
-                subject = getContext("Subject");
+                subject = getFromSub("Subject");
 
                 outToServer.println("A07 FETCH " + mailNum + " RFC822.SIZE");
                 size = getUidSize("RFC822.SIZE");
@@ -401,13 +433,13 @@ public class MailMain extends JFrame{
 
                 outToServer.println("A09 FETCH " + mailNum + " BODY[1]");
                 content = getContent();
-                receiveMailsTemp.add(new Mail(id,from,to,subject,date,size,true,content,box));
-                receiveMails = receiveMailsTemp;
+                receiveMailsTemp.add(new Mail(id,from,to,subject,date,size,true,content,selectBox));
             }
             s.close();
         }catch (IOException e){
             e.printStackTrace();
         }
+        return receiveMailsTemp;
 
     }
     public void connect(){
@@ -417,12 +449,13 @@ public class MailMain extends JFrame{
             //将SOCKET输出流连接到带缓冲功能的
             //输出流PrintWriter，以便一次输出一行报文到服务器
             this.outToServer = new PrintWriter(s.getOutputStream() ,true);
+            this.response = inFromServer.readLine();
         }catch (IOException e){
             e.printStackTrace();
         }
 
     }
-    public String getContext(String title) {
+    public String getFromSub(String title) {
         int start, end;
         String s = "";
         try {
@@ -457,6 +490,45 @@ public class MailMain extends JFrame{
             e.printStackTrace();
         }
         return s;
+    }
+    private List<String> getTo(){
+        List<String> r = new ArrayList<String>();
+        int start, end;
+        String s = "";
+        try {
+            for (int j = 100; j > 0; j--) {
+                response = inFromServer.readLine();
+                System.out.println(response);
+                if (response.contains("To")) {
+                    String[] tempF = response.split(" ");
+                    if(tempF.length>2){
+                        for(String x:tempF){
+                            if(x.contains("<")&&x.contains(">")){
+                                start=x.indexOf("<") + 1;
+                                end = x.lastIndexOf(">");
+                                s = x.substring(start,end);
+                                r.add(s);
+                            }
+                        }
+                    }
+                    else{
+                        start = tempF[1].indexOf("<") + 1;
+                        if (tempF[1].lastIndexOf(">") != -1) {
+                            end = tempF[1].lastIndexOf(">");
+                        } else {
+                            end = tempF[1].length();
+                        }
+                        r.add(tempF[1].substring(start,end));
+                    }
+                }
+                if (response.equals("")) {
+                    j = 3;
+                }
+            }
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        return r;
     }
     private String getDate(String title){
         int start, end;
@@ -554,5 +626,15 @@ public class MailMain extends JFrame{
         this.mailTextArea.append("\n\n");
         this.mailTextArea.append(mail.getContent());
         this.currentMail = mail;
+    }
+    //清空当前打开的邮件及对应的界面组件
+    public void cleanMailInfo() {
+        //设置当前打开的邮件对象为空
+        this.currentMail = null;
+        this.mailTextArea.setText("");
+        //this.fileList.setListData(this.emptyListData);
+    }
+    public void run(){
+
     }
 }

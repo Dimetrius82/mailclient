@@ -15,11 +15,11 @@ public class SendMail {
         from = "hust_wanglin@163.com";
         to = "hust_wanglin@163.com";
         //设置邮件正文
-        mailContent =   
+        mailContent =
                 "From: " + from + "\n" +
                 "To: " + to + "\n" +
                 "Subject: " + "Hello" + "\n\n" +
-                "Hi\nI am 163 mail!\n"; 
+                "<div style=\"line-height:1.7;color:#000000;font-size:14px;font-family:Arial\">This is an email to test the draftbox for desktop.<br></div>)\n";
         //得到本机主机名
         String hostName = InetAddress.getLocalHost().getHostName();
         //建立一个到邮件服务器的连接，端口号25
@@ -92,22 +92,13 @@ public class SendMail {
         System.out.print("MailServer:" + response + "\n");
 
         //开始发送邮件正文
-        outToServer.println(mailContent);
+        outToServer.println(mailContent );
         //发送邮件结束标志
         outToServer.println(".");
         System.out.print("MailServer:" + response + "\n");
 
         //读入来自服务器的应答，并显示在屏幕上
         response = inFromServer.readLine();
-        //测试
-        outToServer.println("CHIDR inbox");
-        outToServer.println("LIST");
-
-        //读入来自服务器的应答，并显示在屏幕上
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
         //关闭SOCKET
         s.close();
     }

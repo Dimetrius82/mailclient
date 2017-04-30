@@ -13,6 +13,6 @@ public class TreeListener extends MouseAdapter{
         this.mailMain = mailMail;
     }
     public void mousePressed(MouseEvent e){
-        mailMain.mouseSelect();
+            mailMain.mouseSelect();
     }
 }
