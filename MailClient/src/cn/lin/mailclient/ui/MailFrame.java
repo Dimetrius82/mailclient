@@ -1,10 +1,22 @@
 package cn.lin.mailclient.ui;
 
+import cn.lin.mailclient.object.Mail;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.util.*;
+import java.util.List;
+import java.util.regex.Pattern;
+
 
 /*邮件编写界面
  * Created by strawberrylin on 17-4-18.
@@ -36,7 +48,7 @@ public class MailFrame extends JFrame{
     private Action send = new AbstractAction("发送") {
         @Override
         public void actionPerformed(ActionEvent e) {
-
+            send();
         }
     };
 
@@ -128,5 +140,141 @@ public class MailFrame extends JFrame{
             }
         });
         this.setLocation(140,80);
+    }
+
+    public void setReceiverText(JTextField receiverText) {
+        this.receiverText = receiverText;
+    }
+
+    public void setCsText(JTextField csText) {
+        this.csText = csText;
+    }
+
+    public void setSubjectText(JTextField subjectText) {
+        this.subjectText = subjectText;
+    }
+
+    public void setTextArea(JTextArea textArea) {
+        this.textArea = textArea;
+    }
+
+    public void send(){
+        String mailContent = "";  //邮件报文
+        String response = "";     //来自服务器的应答
+        String mailServer = "";   //邮件服务器
+        String mailText ="";          //正文
+        String from = "";         //发件人地址
+        String[] to ;        //收件人地址
+        String subject = "";      //邮件主题
+        String tempt = "";
+
+        //设置邮件服务器、发件人地址、收件人地址
+        mailServer = "smtp.163.com";
+        from = mailMain.getUser().getUserName();
+        to = this.receiverText.getText().split(",");
+        for(String t:to){
+            tempt = "<"+t+">" +" " + tempt;
+        }
+        subject = this.subjectText.getText();
+        mailText = this.textArea.getText();
+        //设置邮件数据
+        String pattern = "<.*?>";
+        System.out.println(Pattern.matches(pattern,mailText));
+        System.out.println(mailText);
+        if(Pattern.matches(pattern,mailText)){
+            System.out.println("HTML");
+            mailContent = "From: " + from + "\n" +
+                          "To: " + tempt + "\n" +
+                          "Subject: " + subject +"\n"+
+                          "Content-Type: "+"Text/html"+"\n\n" +
+                           mailText + "\n";
+        }
+        else{
+            System.out.println("Text");
+            mailContent = "From: " + from + "\n" +
+                          "To: " + tempt + "\n" +
+                          "Subject: " + subject + "\n\n" +
+                          mailText + "\n";
+        }
+
+        try{
+            //得到本机主机名
+            String hostName = InetAddress.getLocalHost().getHostName();
+            //建立一个到邮件服务器的连接，端口号25
+            Socket s = new Socket(mailServer,25);
+            //将SOCKET输入流连接到带缓冲功能的
+            //输入流BufferedReader，以便一次读一行来自
+            //服务器的应答报文
+            BufferedReader inFromServer = new BufferedReader(new InputStreamReader(s.getInputStream()));
+            //将SOCKET输出流连接到带缓冲功能的
+            //输出流PrintWriter，以便一次输出一行报文到服务器
+            PrintWriter outToServer = new PrintWriter(s.getOutputStream() ,true);
+
+            //读取来自服务器的第一行应答，并显示在屏幕上
+            response = inFromServer.readLine();
+            //将用户的帐号和密码以BASE64格式进行编码
+            //以便进行服务器身份验证
+            String encodedUser = Base64.getEncoder().encodeToString(mailMain.getUser().getUserName().getBytes("utf-8"));
+            String encodedPwd = Base64.getEncoder().encodeToString(mailMain.getUser().getPassWord().getBytes("utf-8"));
+
+            //和服务器会话，发送EHLO hostname命令
+            outToServer.println("EHLO " + hostName);
+            for(int i = 0; i < 7; i++){
+                response = inFromServer.readLine();
+            }
+            //和服务器会话，发送AUTH LOGIN命令，请求身份验证
+            outToServer.println("AUTH LOGIN ");
+
+            //读入来自服务器的应答，并显示在屏幕上
+            response = inFromServer.readLine();
+            //向服务器发送自己的帐号
+            outToServer.println(encodedUser);
+            //读入来自服务器的应答，并显示在屏幕上
+            response = inFromServer.readLine();
+            //向服务器发送自己的密码
+            outToServer.println(encodedPwd);
+
+            response = inFromServer.readLine();
+            outToServer.println("MAIL FROM: <" + from + ">");
+            //读入来自服务器的应答，并显示在屏幕上
+            response = inFromServer.readLine();
+            //向服务器发送RCPT TO: 收件人地址
+            for(String t : to){
+                outToServer.println("RCPT TO: <" + t + ">" + " " +t);
+                //读入来自服务器的应答，并显示在屏幕上
+                response = inFromServer.readLine();
+            }
+
+            //请求发送邮件正文
+            outToServer.println("DATA");
+            //读入来自服务器的应答，并显示在屏幕上
+            response = inFromServer.readLine();
+            //开始发送邮件正文
+            outToServer.println(mailContent);
+            //发送邮件结束标志
+            outToServer.println(".");
+
+            //读入来自服务器的应答，并显示在屏幕上
+            response = inFromServer.readLine();
+            if(response.contains("250 Mail OK")){
+                this.setVisible(false);
+                refreshWindow();
+            }
+            else{
+                JOptionPane.showConfirmDialog(this,"发送失败，已保存到草稿箱","警告",JOptionPane.OK_CANCEL_OPTION);
+                this.setVisible(false);
+                refreshWindow();
+            }
+            //关闭SOCKET
+            s.close();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+    private void refreshWindow(){
+        this.receiverText.setText("");
+        this.csText.setText("");
+        this.subjectText.setText("");
+        this.textArea.setText("");
     }
 }

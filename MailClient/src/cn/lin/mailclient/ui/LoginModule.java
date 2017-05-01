@@ -134,7 +134,30 @@ public class LoginModule extends JFrame{
             response = inFromServer.readLine();
             outToServer.println(encoderPwd);
             response = inFromServer.readLine();
-            if(response.equals("235 Authentication successful")){
+            if(response.contains("235 Authentication successful")){
+                File file = new File("data"+File.separator+user.getUserName());
+                if(!file.exists()){
+                    file.mkdir();
+                }
+                String fileName = user.getUserName()+".log";
+                File configFile = new File(file.getAbsolutePath()+File.separator+fileName);
+                try{
+                    if(!configFile.exists()){
+                        configFile.createNewFile();
+                    }
+                    String data = String.valueOf(new Date());
+                    String user = this.user.getUserName();
+                    String pass = this.user.getPassWord();
+                    System.out.println(configFile.getAbsoluteFile());
+                    FileWriter fileWrite = new FileWriter(configFile.getAbsoluteFile(),true);
+                    BufferedWriter bufferedWriter = new BufferedWriter(fileWrite);
+                    System.out.println(data + "\n"+user+"\n"+pass);
+                    bufferedWriter.write(data + "\n"+user+"\n"+pass);
+                    bufferedWriter.close();
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+
                 this.setVisible(false);
                 s.close();
                 run(new MailMain(user),425,300);

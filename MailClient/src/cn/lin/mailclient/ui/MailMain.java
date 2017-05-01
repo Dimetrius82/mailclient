@@ -16,9 +16,6 @@ import java.util.Date;
 
 import cn.lin.box.*;
 import cn.lin.mailclient.object.*;
-import com.sun.xml.internal.fastinfoset.sax.SystemIdResolver;
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
-
 import java.awt.event.ActionEvent;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,7 +23,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.List;
@@ -92,7 +88,9 @@ public class MailMain extends JFrame implements Runnable{
     private Action send = new AbstractAction("发送") {
         @Override
         public void actionPerformed(ActionEvent e) {
-
+            if(box instanceof DraftBox){
+                resend();
+            }
         }
     };
     private  Action write = new AbstractAction("写邮件") {
@@ -131,6 +129,11 @@ public class MailMain extends JFrame implements Runnable{
 
         }
     };
+
+    public User getUser() {
+        return user;
+    }
+
     public MailMain(User user){
         this.user = user;
         try{
@@ -318,8 +321,36 @@ public class MailMain extends JFrame implements Runnable{
     }
     private void write() {
         this.mailFrame.setVisible(true);
+        this.mailFrame.setSize(850,600);
+        this.mailFrame.setLocation(300,250);
     }
 
+    private void resend() {
+        JTextField receiverText = new JTextField(60);
+        JTextField csText = new JTextField(60);
+        JTextField subjectText = new JTextField(60);
+        JTextArea textArea = new JTextArea(20,50);
+        String tempt = "";
+        Mail mail = getSelectMail();
+        for(String t : mail.getReceiver()){
+            if(tempt == ""){
+                tempt = t;
+            }else{
+                tempt = tempt + "," + t;
+            }
+        }
+        receiverText.setText(tempt);
+        System.out.println(tempt);
+        csText.setText("");
+        subjectText.setText(mail.getSubject());
+        textArea.setText(mail.getContent());
+        System.out.println(mail.getContent());
+        this.mailFrame.setReceiverText(receiverText);
+        this.mailFrame.setCsText(csText);
+        this.mailFrame.setSubjectText(subjectText);
+        this.mailFrame.setTextArea(textArea);
+        this.mailFrame.send();
+    }
     private void delete(){
 
     }
@@ -472,7 +503,7 @@ public class MailMain extends JFrame implements Runnable{
                             end = tempF[2].length();
                         }
                         s = tempF[2].substring(start, end);
-                    } else {
+                    } else if(tempF.length == 2){
                         start = tempF[1].indexOf("<") + 1;
                         if (tempF[1].lastIndexOf(">") != -1) {
                             end = tempF[1].lastIndexOf(">");
@@ -480,6 +511,8 @@ public class MailMain extends JFrame implements Runnable{
                             end = tempF[1].length();
                         }
                         s = tempF[1].substring(start, end);
+                    }else{
+                        s = "";
                     }
                 }
                 if (response.equals("")) {

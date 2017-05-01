@@ -9,23 +9,26 @@ public class SendMail {
         String response = "";     //来自服务器的应答
         String mailServer = "";   //邮件服务器
         String from = "";         //发件人地址
-        String to = "";           //收件人地址
+        String to1 = "";           //收件人地址
+        String to2 = "";
         //设置邮件服务器、发件人地址、收件人地址
         mailServer = "smtp.163.com";
         from = "hust_wanglin@163.com";
-        to = "hust_wanglin@163.com";
+        to1 = "hust_wanglin@163.com";
+        to2 = "15888797753@163.com";
         //设置邮件正文
         mailContent =
                 "From: " + from + "\n" +
-                "To: " + to + "\n" +
-                "Subject: " + "Hello" + "\n\n" +
+                "To: " + to1 + to2 + "\n" +
+                "Subject: " + "Hello" + "\n"+
+                        "Content-Type: "+"text/html"+"\n\n" +
                 "<div style=\"line-height:1.7;color:#000000;font-size:14px;font-family:Arial\">This is an email to test the draftbox for desktop.<br></div>)\n";
         //得到本机主机名
         String hostName = InetAddress.getLocalHost().getHostName();
         //建立一个到邮件服务器的连接，端口号25
         Socket s = new Socket(mailServer,25);
         //将SOCKET输入流连接到带缓冲功能的
-        //输入流BufferedReader，以便一次读一行来自
+        //输入流BufferedReader，以便一次读一 行来自
         //服务器的应答报文
         BufferedReader inFromServer = new BufferedReader(new InputStreamReader(s.getInputStream()));
         //将SOCKET输出流连接到带缓冲功能的
@@ -77,9 +80,14 @@ public class SendMail {
         response = inFromServer.readLine();
         System.out.print("MailServer:" + response + "\n");
         //向服务器发送RCPT TO: 收件人地址
-        System.out.print("Client:" + "RCPT TO: " + to + "\n");
+        System.out.print("Client:" + "RCPT TO: " + to1 +"<"+to1+">"+"\n");
         
-        outToServer.println("RCPT TO: <" + to + ">");
+        outToServer.println("RCPT TO: <" + to1 + ">" +" "+ to1);
+
+        //读入来自服务器的应答，并显示在屏幕上
+        response = inFromServer.readLine();
+        System.out.print("MailServer:" + response + "\n");
+        outToServer.println("RCPT TO: <" + to2 + ">" +" " + to2);
 
         //读入来自服务器的应答，并显示在屏幕上
         response = inFromServer.readLine();
@@ -92,7 +100,7 @@ public class SendMail {
         System.out.print("MailServer:" + response + "\n");
 
         //开始发送邮件正文
-        outToServer.println(mailContent );
+        outToServer.println(mailContent);
         //发送邮件结束标志
         outToServer.println(".");
         System.out.print("MailServer:" + response + "\n");
