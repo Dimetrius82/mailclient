@@ -27,7 +27,7 @@ import java.net.UnknownHostException;
 import java.util.*;
 import java.util.List;
 
-public class MailMain extends JFrame implements Runnable{
+public class MailMain extends JFrame{
     private User user;
     private String mailServer;
     private String response ;
@@ -49,6 +49,7 @@ public class MailMain extends JFrame implements Runnable{
     private JScrollPane filePane;
     private JList fileList;
     private JToolBar toolBar = new JToolBar();
+    private JProgressBar prograssBar = new JProgressBar();
     private  MailBox box;
     //收件箱
     private List<Mail> receiveMails;
@@ -108,22 +109,19 @@ public class MailMain extends JFrame implements Runnable{
     private Action delete = new AbstractAction("删除邮件") {
         @Override
         public void actionPerformed(ActionEvent e) {
-
+            if(box instanceof ReceiveBox){
+               delete("INBOX");
+            }else if(box instanceof SentBox){
+                delete("&XfJT0ZAB-");
+            }else if(box instanceof DraftBox){
+                System.out.println("childThread");
+                delete("&g0l6P3ux-");
+            }else if (box instanceof DeletedBox){
+                delete("&XfJSIJZk-");
+            }
         }
     };
     private Action setup = new AbstractAction("设置") {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-
-        }
-    };
-    private Action downloadHead = new AbstractAction("下载邮件头部") {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-
-        }
-    };
-    private Action downloadAll = new AbstractAction("下载邮件全部") {
         @Override
         public void actionPerformed(ActionEvent e) {
 
@@ -205,6 +203,8 @@ public class MailMain extends JFrame implements Runnable{
                 this.treePane, this.mailListInfoPane);
         this.mailSplitPane.setDividerLocation(150);
         this.mailSplitPane.setDividerSize(3);
+        this.prograssBar.setMinimum(0);
+        this.prograssBar.setMaximum(100);
         //设置用户邮箱地址的显示
         //this.welcome.setText(this.welcome.getText() + ctx.getUser());
         //创建工具栏
@@ -263,13 +263,10 @@ public class MailMain extends JFrame implements Runnable{
         //this.toolBar.add(this.transmit).setToolTipText("转发邮件");
         this.toolBar.add(this.delete).setToolTipText("删除邮件");
         this.toolBar.addSeparator(new Dimension(20, 0));
-        this.toolBar.add(this.downloadHead).setToolTipText("下载邮件头部");
-        this.toolBar.addSeparator(new Dimension(20, 0));
-        this.toolBar.add(this.downloadAll).setToolTipText("下载全部");
-        this.toolBar.addSeparator(new Dimension(20, 0));
 
-
+        this.toolBar.add(prograssBar);
         this.toolBar.addSeparator(new Dimension(50, 0));
+
         //this.toolBar.add(this.welcome);
         this.toolBar.setFloatable(false);//设置工具栏不可移动
         this.toolBar.setMargin(new Insets(5, 10, 5, 5));//设置工具栏的边距
@@ -351,8 +348,54 @@ public class MailMain extends JFrame implements Runnable{
         this.mailFrame.setTextArea(textArea);
         this.mailFrame.send();
     }
-    private void delete(){
+    private void delete(String selectBox){
+        int sumMail = 0;
+        String mailNum = "";
+        String id = "";
+        Mail m = getSelectMail();
+        this.connect(143);
+        try{
+            outToServer.println("A01 LOGIN " + user.getUserName()+" "+user.getPassWord());
+            response = inFromServer.readLine();
 
+            outToServer.println("A02 SELECT " + selectBox);
+            for(int i = 0;i < 6;i ++){
+                response = inFromServer.readLine();
+                if(i == 0){
+                    String[] tempS = response.split(" ");
+                    System.out.println(tempS[1]);
+                    sumMail = Integer.parseInt(tempS[1]);
+                }
+            }
+
+            for(int i = sumMail;i > 0;i -- ) {
+                mailNum = String.valueOf(i);
+                outToServer.println("A03 FETCH " + mailNum + " UID");
+                id = getUidSize("UID");
+
+                if(m.getID().equals(id)){
+                    System.out.println("breakpoint1");
+                    System.out.println("A08 Store " + mailNum + " +flags.silent (\\deleted)");
+                    outToServer.println("A08 Store " + mailNum + " +flags.silent (\\deleted)");
+                    response = inFromServer.readLine();
+                    System.out.println(response);
+                    response = inFromServer.readLine();
+                    System.out.println(response);
+                    response = inFromServer.readLine();
+                    System.out.println(response);
+                    response = inFromServer.readLine();
+                    System.out.println(response);
+                    System.out.println("xixi");
+                    outToServer.println("A09 Expunge");
+                    response = inFromServer.readLine();
+                    System.out.println(response);
+                    break;
+                }
+            }
+            s.close();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
     }
 
     public  void mouseSelect(){
@@ -363,8 +406,8 @@ public class MailMain extends JFrame implements Runnable{
             if(box instanceof WriteBox){
                 write();
             }
-            if(box instanceof ReceiveBox){
-                new Thread(new Runnable() {
+            else if(box instanceof ReceiveBox){
+                     new Thread(new Runnable() {
                     @Override
                     public void run() {
                         receiveMails = getBoxData("INBOX");
@@ -427,8 +470,8 @@ public class MailMain extends JFrame implements Runnable{
         int start,end;
         Mail mailR;
         String mailNum;
+        this.connect(143);
         try{
-            connect();
             outToServer.println("A01 LOGIN " + user.getUserName()+" "+user.getPassWord());
             response = inFromServer.readLine();
             outToServer.println("A02 SELECT " + selectBox);
@@ -465,7 +508,10 @@ public class MailMain extends JFrame implements Runnable{
                 outToServer.println("A09 FETCH " + mailNum + " BODY[1]");
                 content = getContent();
                 receiveMailsTemp.add(new Mail(id,from,to,subject,date,size,true,content,selectBox));
+                this.prograssBar.setValue((int)((sumMail - i)*100.00)/sumMail);
+                System.out.println((int)((sumMail - i+1)*100.00)/sumMail);
             }
+            this.prograssBar.setValue(0);
             s.close();
         }catch (IOException e){
             e.printStackTrace();
@@ -473,18 +519,18 @@ public class MailMain extends JFrame implements Runnable{
         return receiveMailsTemp;
 
     }
-    public void connect(){
+    public void connect(int port){
         try{
-            s = new Socket(mailServer,143);
+            s = new Socket(mailServer,port);
             this.inFromServer = new BufferedReader(new InputStreamReader(s.getInputStream(),"UTF-8"));
             //将SOCKET输出流连接到带缓冲功能的
             //输出流PrintWriter，以便一次输出一行报文到服务器
             this.outToServer = new PrintWriter(s.getOutputStream() ,true);
             this.response = inFromServer.readLine();
+
         }catch (IOException e){
             e.printStackTrace();
         }
-
     }
     public String getFromSub(String title) {
         int start, end;
@@ -667,7 +713,20 @@ public class MailMain extends JFrame implements Runnable{
         this.mailTextArea.setText("");
         //this.fileList.setListData(this.emptyListData);
     }
-    public void run(){
 
+    public List<Mail> getDraftMails() {
+        return draftMails;
+    }
+
+    public List<Mail> getCurrentMails() {
+        return currentMails;
+    }
+
+    public void setMailServer(String mailServer) {
+        this.mailServer = mailServer;
+    }
+
+    public void setCurrentMails(List<Mail> currentMails) {
+        this.currentMails = currentMails;
     }
 }

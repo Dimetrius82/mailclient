@@ -22,6 +22,16 @@ import java.util.regex.Pattern;
  * Created by strawberrylin on 17-4-18.
  */
 public class MailFrame extends JFrame{
+    private String mailContent = "";  //邮件报文
+    private String response = "";     //来自服务器的应答
+    private String mailServer = "";   //邮件服务器
+    private String mailText ="";          //正文
+    private String from = "";         //发件人地址
+    private List<String> to ;        //收件人地址
+    private String subject = "";      //邮件主题
+    private Socket s;
+    private BufferedReader inFromServer;
+    private PrintWriter outToServer;
     private JLabel receiverLabel = new JLabel("收件人：");
     private JTextField receiverText = new JTextField(60);
     private JLabel csLabel = new JLabel("抄送： ");
@@ -51,17 +61,10 @@ public class MailFrame extends JFrame{
             send();
         }
     };
-
-    private Action saveOut = new AbstractAction("保存至发件箱") {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-
-        }
-    };
     private Action saveDraft = new AbstractAction("保存至草稿箱") {
         @Override
         public void actionPerformed(ActionEvent e) {
-
+            save();
         }
     };
     private Action upFile = new AbstractAction("上传附件") {
@@ -77,8 +80,10 @@ public class MailFrame extends JFrame{
         }
     };
     public MailFrame(MailMain mailMain){
+
         this.fileList = new JList();
         this.mailMain = mailMain;
+        this.to = new ArrayList<String>();
         //this.systemHandler = mailMain.getSystemHandler();
         //this.mailSender = mailMain.getMailSender();
         this.toolBar.add(this.send).setToolTipText("发送");
@@ -159,59 +164,12 @@ public class MailFrame extends JFrame{
     }
 
     public void send(){
-        String mailContent = "";  //邮件报文
-        String response = "";     //来自服务器的应答
-        String mailServer = "";   //邮件服务器
-        String mailText ="";          //正文
-        String from = "";         //发件人地址
-        String[] to ;        //收件人地址
-        String subject = "";      //邮件主题
-        String tempt = "";
-
-        //设置邮件服务器、发件人地址、收件人地址
-        mailServer = "smtp.163.com";
-        from = mailMain.getUser().getUserName();
-        to = this.receiverText.getText().split(",");
-        for(String t:to){
-            tempt = "<"+t+">" +" " + tempt;
-        }
-        subject = this.subjectText.getText();
-        mailText = this.textArea.getText();
-        //设置邮件数据
-        String pattern = "<.*?>";
-        System.out.println(Pattern.matches(pattern,mailText));
-        System.out.println(mailText);
-        if(Pattern.matches(pattern,mailText)){
-            System.out.println("HTML");
-            mailContent = "From: " + from + "\n" +
-                          "To: " + tempt + "\n" +
-                          "Subject: " + subject +"\n"+
-                          "Content-Type: "+"Text/html"+"\n\n" +
-                           mailText + "\n";
-        }
-        else{
-            System.out.println("Text");
-            mailContent = "From: " + from + "\n" +
-                          "To: " + tempt + "\n" +
-                          "Subject: " + subject + "\n\n" +
-                          mailText + "\n";
-        }
-
+        setMail("smtp.163.com");
         try{
             //得到本机主机名
             String hostName = InetAddress.getLocalHost().getHostName();
             //建立一个到邮件服务器的连接，端口号25
-            Socket s = new Socket(mailServer,25);
-            //将SOCKET输入流连接到带缓冲功能的
-            //输入流BufferedReader，以便一次读一行来自
-            //服务器的应答报文
-            BufferedReader inFromServer = new BufferedReader(new InputStreamReader(s.getInputStream()));
-            //将SOCKET输出流连接到带缓冲功能的
-            //输出流PrintWriter，以便一次输出一行报文到服务器
-            PrintWriter outToServer = new PrintWriter(s.getOutputStream() ,true);
-
-            //读取来自服务器的第一行应答，并显示在屏幕上
-            response = inFromServer.readLine();
+            this.connect(25);
             //将用户的帐号和密码以BASE64格式进行编码
             //以便进行服务器身份验证
             String encodedUser = Base64.getEncoder().encodeToString(mailMain.getUser().getUserName().getBytes("utf-8"));
@@ -271,10 +229,72 @@ public class MailFrame extends JFrame{
             e.printStackTrace();
         }
     }
+    public void save(){
+        setMail("imap.163.com");
+        this.connect(143);
+        try{
+            outToServer.println("A01 LOGIN " + mailMain.getUser().getUserName()+" "+mailMain.getUser().getPassWord());
+            response = inFromServer.readLine();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        mailMain.getCurrentMails().add(new Mail("xx",from,to,subject,"date","100",true,mailContent,"Dra"));
+        mailMain.refreshTable();
+        mailMain.cleanMailInfo();
+    }
+    public void setMail(String mailServer){
+        String tempt = "";
+        //设置邮件服务器、发件人地址、收件人地址
+        this.mailServer = mailServer;
+        this.from = mailMain.getUser().getUserName();
+        String[] tempS =this.receiverText.getText().split(",");
+        for(String t: tempS){
+            this.to.add(t);
+        }
+        for(String t:to){
+            tempt = "<"+t+">" +" " + tempt;
+        }
+        this.subject = this.subjectText.getText();
+        this.mailText = this.textArea.getText();
+        //设置邮件数据
+        String pattern = "<.*?>";
+        System.out.println(Pattern.matches(pattern,mailText));
+        System.out.println(mailText);
+        if(Pattern.matches(pattern,mailText)){
+            System.out.println("HTML");
+            mailContent = "From: " + from + "\n" +
+                    "To: " + tempt + "\n" +
+                    "Subject: " + subject +"\n"+
+                    "Content-Type: "+"Text/html"+"\n\n" +
+                    mailText + "\n";
+        }
+        else{
+            System.out.println("Text");
+            mailContent = "From: " + from + "\n" +
+                    "To: " + tempt + "\n" +
+                    "Subject: " + subject + "\n\n" +
+                    mailText + "\n";
+        }
+    }
+
     private void refreshWindow(){
         this.receiverText.setText("");
         this.csText.setText("");
         this.subjectText.setText("");
         this.textArea.setText("");
+    }
+
+
+    public void connect(int port){
+        try{
+            s = new Socket(mailServer,port);
+            this.inFromServer = new BufferedReader(new InputStreamReader(s.getInputStream(),"UTF-8"));
+            //将SOCKET输出流连接到带缓冲功能的
+            //输出流PrintWriter，以便一次输出一行报文到服务器
+            this.outToServer = new PrintWriter(s.getOutputStream() ,true);
+            this.response = inFromServer.readLine();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
     }
 }

@@ -20,8 +20,9 @@ public class SendMail {
         mailContent =
                 "From: " + from + "\n" +
                 "To: " + to1 + to2 + "\n" +
-                "Subject: " + "Hello" + "\n"+
-                        "Content-Type: "+"text/html"+"\n\n" +
+                "Subject: " + "Hello" + "\n" +
+                "Flags: " +"\\Drafts"+ "\n" +
+                "Content-Type: "+"text/html"+"\n\n" +
                 "<div style=\"line-height:1.7;color:#000000;font-size:14px;font-family:Arial\">This is an email to test the draftbox for desktop.<br></div>)\n";
         //得到本机主机名
         String hostName = InetAddress.getLocalHost().getHostName();
