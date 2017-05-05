@@ -29,7 +29,7 @@ import java.util.List;
 
 public class MailMain extends JFrame{
     private User user;
-    private String mailServer;
+    private String mailServerR,mailServerS;
     private String response ;
     private String hostName;
     private Socket s;
@@ -64,7 +64,7 @@ public class MailMain extends JFrame{
     //写邮件
     private MailFrame mailFrame;
     //系统设置界面对象
-    //private SetupFrame setupFrame;
+    private Setup setupFrame;
     //邮箱加载对象
     //private MailLoader mailLoader = new MailLoaderImpl();
     //本地中的邮件处理对象
@@ -100,10 +100,18 @@ public class MailMain extends JFrame{
             write();
         }
     };
-    private Action reply = new AbstractAction("回复邮件") {
+    private Action reply = new AbstractAction("回复") {
         @Override
         public void actionPerformed(ActionEvent e) {
-
+            if(box instanceof ReceiveBox){
+               reply();
+            }
+        }
+    };
+    private Action transmit = new AbstractAction("转发") {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            transmit();
         }
     };
     private Action delete = new AbstractAction("删除邮件") {
@@ -124,7 +132,7 @@ public class MailMain extends JFrame{
     private Action setup = new AbstractAction("设置") {
         @Override
         public void actionPerformed(ActionEvent e) {
-
+            setUp();
         }
     };
 
@@ -151,19 +159,19 @@ public class MailMain extends JFrame{
             e.printStackTrace();
         }
 
-        this.mailServer = "imap.163.com";
+        this.mailServerR = "imap.163.com";
         this.response = "";
-        System.out.print(user.getUserName() + user.getPassWord());
+        System.out.println(user.getUserName() + user.getPassWord());
+        this.setupFrame = new Setup(this);
+
         this.mailFrame = new MailFrame(this);
         List<String> s = new ArrayList<String>();
         s.add("Hust.wanglin@gmail.com");
 
-        Mail d = new Mail("xml","1340295481@qq.com",s,"Test2","2017-4-23","100",false,"Hello","unknow");
+
         this.currentMails = new ArrayList<Mail>();
         this.receiveMails = new ArrayList<Mail>();
         this.deleteMails = new ArrayList<Mail>();
-
-        this.deleteMails.add(d);
 
         //this.currentMails = this.receiveMails;
         this.tree = newTree();
@@ -258,10 +266,11 @@ public class MailMain extends JFrame{
         this.toolBar.addSeparator(new Dimension(20, 0));
         this.toolBar.add(this.reply).setToolTipText("回复邮件");
         this.toolBar.addSeparator(new Dimension(20, 0));
-        this.toolBar.add(this.setup).setToolTipText("设置");
+        this.toolBar.add(this.transmit).setToolTipText("转发邮件");
         this.toolBar.addSeparator(new Dimension(20, 0));
-        //this.toolBar.add(this.transmit).setToolTipText("转发邮件");
         this.toolBar.add(this.delete).setToolTipText("删除邮件");
+        this.toolBar.addSeparator(new Dimension(20, 0));
+        this.toolBar.add(this.setup).setToolTipText("设置");
         this.toolBar.addSeparator(new Dimension(20, 0));
 
         this.toolBar.add(prograssBar);
@@ -398,6 +407,40 @@ public class MailMain extends JFrame{
         }
     }
 
+    public void reply(){
+        JTextField receiverText = new JTextField(60);
+        JTextField subjectText = new JTextField(60);
+        String tempt = "";
+        Mail mail = getSelectMail();
+        for(String t : mail.getReceiver()){
+            if(tempt == ""){
+                tempt = t;
+            }else{
+                tempt = tempt + "," + t;
+            }
+        }
+        receiverText.setText(tempt);
+        System.out.println(tempt);
+        subjectText.setText("reply: "+mail.getSubject());
+        System.out.println(mail.getContent());
+        this.mailFrame.setReceiverText(receiverText);
+        this.mailFrame.setSubjectText(subjectText);
+        this.mailFrame.setVisible(true);
+    }
+
+    public void transmit(){
+        JTextField subjectText = new JTextField(60);
+        JTextArea textArea = new JTextArea(20,50);
+        String tempt = "";
+        Mail mail = getSelectMail();
+        subjectText.setText("transmit: "+mail.getSubject());
+        textArea.setText(mail.getContent());
+        System.out.println(mail.getContent());
+        this.mailFrame.setSubjectText(subjectText);
+        this.mailFrame.setTextArea(textArea);
+        this.mailFrame.setVisible(true);
+    }
+
     public  void mouseSelect(){
         TreePath treePath = this.tree.getSelectionPath();
         if(treePath != null){
@@ -451,6 +494,11 @@ public class MailMain extends JFrame{
         }
     }
 
+    public void setUp(){
+        this.setupFrame.setVisible(true);
+        this.setupFrame.setLocation(300,250);
+    }
+
     public void refreshTable(){
         DefaultTableModel tableModle =(DefaultTableModel)this.mailListTable.getModel();
         tableModle.setDataVector(createDataView(this.currentMails),getListColumn());
@@ -493,6 +541,10 @@ public class MailMain extends JFrame{
                 List<String> to = new ArrayList<String>();
                 to = getTo();
 
+                outToServer.println("A04 FETCH " + mailNum + " BODY[HEADER.FIELDS (CC)]");
+                List<String> csto = new ArrayList<String>();
+                csto = getCsto();
+
                 outToServer.println("A05 FETCH " + mailNum + " BODY[HEADER.FIELDS (DATE)]");
                 date = getDate("Date");
 
@@ -507,7 +559,7 @@ public class MailMain extends JFrame{
 
                 outToServer.println("A09 FETCH " + mailNum + " BODY[1]");
                 content = getContent();
-                receiveMailsTemp.add(new Mail(id,from,to,subject,date,size,true,content,selectBox));
+                receiveMailsTemp.add(new Mail(id,from,to,subject,date,size,csto,content,selectBox));
                 this.prograssBar.setValue((int)((sumMail - i)*100.00)/sumMail);
                 System.out.println((int)((sumMail - i+1)*100.00)/sumMail);
             }
@@ -521,7 +573,7 @@ public class MailMain extends JFrame{
     }
     public void connect(int port){
         try{
-            s = new Socket(mailServer,port);
+            s = new Socket(mailServerR,port);
             this.inFromServer = new BufferedReader(new InputStreamReader(s.getInputStream(),"UTF-8"));
             //将SOCKET输出流连接到带缓冲功能的
             //输出流PrintWriter，以便一次输出一行报文到服务器
@@ -579,6 +631,45 @@ public class MailMain extends JFrame{
                 response = inFromServer.readLine();
                 System.out.println(response);
                 if (response.contains("To")) {
+                    String[] tempF = response.split(" ");
+                    if(tempF.length>2){
+                        for(String x:tempF){
+                            if(x.contains("<")&&x.contains(">")){
+                                start=x.indexOf("<") + 1;
+                                end = x.lastIndexOf(">");
+                                s = x.substring(start,end);
+                                r.add(s);
+                            }
+                        }
+                    }
+                    else{
+                        start = tempF[1].indexOf("<") + 1;
+                        if (tempF[1].lastIndexOf(">") != -1) {
+                            end = tempF[1].lastIndexOf(">");
+                        } else {
+                            end = tempF[1].length();
+                        }
+                        r.add(tempF[1].substring(start,end));
+                    }
+                }
+                if (response.equals("")) {
+                    j = 3;
+                }
+            }
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        return r;
+    }
+    private List<String> getCsto(){
+        List<String> r = new ArrayList<String>();
+        int start, end;
+        String s = "";
+        try {
+            for (int j = 100; j > 0; j--) {
+                response = inFromServer.readLine();
+                System.out.println(response);
+                if (response.contains("cc")) {
                     String[] tempF = response.split(" ");
                     if(tempF.length>2){
                         for(String x:tempF){
@@ -693,9 +784,9 @@ public class MailMain extends JFrame{
         Mail mail = getSelectMail();
         this.mailTextArea.append("发件人：  " + mail.getSender());
         this.mailTextArea.append("\n");
-        //this.mailTextArea.append("抄送：  " + mail.getCsName());
-        //this.mailTextArea.append("\n");
         this.mailTextArea.append("收件人:   " + mail.sendToName());
+        this.mailTextArea.append("\n");
+        this.mailTextArea.append("抄送：  " + mail.getCsName());
         this.mailTextArea.append("\n");
         this.mailTextArea.append("主题：  " + mail.getSubject());
         this.mailTextArea.append("\n");
@@ -723,7 +814,7 @@ public class MailMain extends JFrame{
     }
 
     public void setMailServer(String mailServer) {
-        this.mailServer = mailServer;
+        this.mailServerR = mailServer;
     }
 
     public void setCurrentMails(List<Mail> currentMails) {

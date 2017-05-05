@@ -11,17 +11,18 @@ public class SendMail {
         String from = "";         //发件人地址
         String to1 = "";           //收件人地址
         String to2 = "";
+        String cc = "";
         //设置邮件服务器、发件人地址、收件人地址
         mailServer = "smtp.163.com";
         from = "hust_wanglin@163.com";
         to1 = "hust_wanglin@163.com";
         to2 = "15888797753@163.com";
+        cc = "424435985@qq.com";
         //设置邮件正文
         mailContent =
                 "From: " + from + "\n" +
                 "To: " + to1 + to2 + "\n" +
                 "Subject: " + "Hello" + "\n" +
-                "Flags: " +"\\Drafts"+ "\n" +
                 "Content-Type: "+"text/html"+"\n\n" +
                 "<div style=\"line-height:1.7;color:#000000;font-size:14px;font-family:Arial\">This is an email to test the draftbox for desktop.<br></div>)\n";
         //得到本机主机名
@@ -93,6 +94,13 @@ public class SendMail {
         //读入来自服务器的应答，并显示在屏幕上
         response = inFromServer.readLine();
         System.out.print("MailServer:" + response + "\n");
+
+        //抄送
+        //outToServer.println("Cc: " + cc );
+
+        //读入来自服务器的应答，并显示在屏幕上
+        //response = inFromServer.readLine();
+        //System.out.print("MailServer:" + response + "\n");
 
         //请求发送邮件正文
         outToServer.println("DATA");

@@ -1,6 +1,7 @@
 package cn.lin.mailclient.ui;
 
 import cn.lin.mailclient.object.Mail;
+import cn.lin.mailclient.object.User;
 
 import javax.swing.*;
 import java.awt.*;
@@ -28,6 +29,8 @@ public class MailFrame extends JFrame{
     private String mailText ="";          //正文
     private String from = "";         //发件人地址
     private List<String> to ;        //收件人地址
+    private List<String> csto ;        //抄送人地址
+    private List<String> bcsto ;        //密送地址
     private String subject = "";      //邮件主题
     private Socket s;
     private BufferedReader inFromServer;
@@ -36,16 +39,19 @@ public class MailFrame extends JFrame{
     private JTextField receiverText = new JTextField(60);
     private JLabel csLabel = new JLabel("抄送： ");
     private JTextField csText = new JTextField(60);
+    private JLabel bcsLabel = new JLabel("密送： ");
+    private JTextField bcsText = new JTextField(60);
     private JLabel subjectLabel = new JLabel("主题： ");
     private JTextField subjectText = new JTextField(60);
     private JScrollPane textScrollPane;
-    private JTextArea textArea = new JTextArea(20,50);
+    private JTextArea textArea;
     private JSplitPane vSplit;
     private JSplitPane hSplit;
     private JScrollPane fileScrollPane;
     private JList fileList;
     private Box receiverBox = Box.createHorizontalBox();
     private Box csBox = Box.createHorizontalBox();
+    private Box bcsBox = Box.createHorizontalBox();
     private Box subjectBox = Box.createHorizontalBox();
     private Box mainBox = Box.createVerticalBox();
     private JToolBar toolBar = new JToolBar();
@@ -82,8 +88,9 @@ public class MailFrame extends JFrame{
     public MailFrame(MailMain mailMain){
 
         this.fileList = new JList();
+        textArea = new JTextArea(20,50);
         this.mailMain = mailMain;
-        this.to = new ArrayList<String>();
+
         //this.systemHandler = mailMain.getSystemHandler();
         //this.mailSender = mailMain.getMailSender();
         this.toolBar.add(this.send).setToolTipText("发送");
@@ -109,6 +116,12 @@ public class MailFrame extends JFrame{
         this.csBox.add(Box.createHorizontalStrut(12));
         this.csBox.add(csText);
         this.csBox.add(Box.createHorizontalStrut(10));
+        //密送
+        this.bcsBox.add(Box.createHorizontalStrut(10));
+        this.bcsBox.add(bcsLabel);
+        this.bcsBox.add(Box.createHorizontalStrut(12));
+        this.bcsBox.add(bcsText);
+        this.bcsBox.add(Box.createHorizontalStrut(10));
         //主题
         this.subjectBox.add(Box.createHorizontalStrut(10));
         this.subjectBox.add(subjectLabel);
@@ -120,6 +133,8 @@ public class MailFrame extends JFrame{
         this.mainBox.add(this.receiverBox);
         this.mainBox.add(Box.createVerticalStrut(5));
         this.mainBox.add(this.csBox);
+        this.mainBox.add(Box.createVerticalStrut(5));
+        this.mainBox.add(this.bcsBox);
         this.mainBox.add(Box.createVerticalStrut(5));
         this.mainBox.add(this.subjectBox);
         this.mainBox.add(Box.createVerticalStrut(10));
@@ -148,19 +163,19 @@ public class MailFrame extends JFrame{
     }
 
     public void setReceiverText(JTextField receiverText) {
-        this.receiverText = receiverText;
+        this.receiverText.setText(receiverText.getText());
     }
 
     public void setCsText(JTextField csText) {
-        this.csText = csText;
+        this.csText.setText(subjectText.getText());
     }
 
     public void setSubjectText(JTextField subjectText) {
-        this.subjectText = subjectText;
+        this.subjectText.setText(subjectText.getText());
     }
 
     public void setTextArea(JTextArea textArea) {
-        this.textArea = textArea;
+        this.textArea.setText(textArea.getText());
     }
 
     public void send(){
@@ -198,9 +213,33 @@ public class MailFrame extends JFrame{
             response = inFromServer.readLine();
             //向服务器发送RCPT TO: 收件人地址
             for(String t : to){
-                outToServer.println("RCPT TO: <" + t + ">" + " " +t);
-                //读入来自服务器的应答，并显示在屏幕上
-                response = inFromServer.readLine();
+                if(!t.equals("")){
+                    outToServer.println("RCPT TO: <" + t + ">" + " " +t);
+                    //读入来自服务器的应答，并显示在屏幕上
+                    response = inFromServer.readLine();
+                    System.out.println(response);
+                }
+            }
+
+            //向服务器发送RCPT TO: 收件人地址
+            for(String t : csto){
+                if(!t.equals("")){
+                    outToServer.println("RCPT TO: <" + t + ">" + " " +t);
+                    //读入来自服务器的应答，并显示在屏幕上
+                    response = inFromServer.readLine();
+                    System.out.println(response);
+                }
+            }
+
+            //向服务器发送RCPT TO: 收件人地址
+
+            for(String t : bcsto){
+                if(!t.equals("")){
+                    outToServer.println("RCPT TO: <" + t + ">" + " " +t);
+                    //读入来自服务器的应答，并显示在屏幕上
+                    response = inFromServer.readLine();
+                    System.out.println(response);
+                }
             }
 
             //请求发送邮件正文
@@ -238,20 +277,39 @@ public class MailFrame extends JFrame{
         }catch (IOException e){
             e.printStackTrace();
         }
-        mailMain.getCurrentMails().add(new Mail("xx",from,to,subject,"date","100",true,mailContent,"Dra"));
+        mailMain.getCurrentMails().add(new Mail("xx",from,to,subject,"date","100",csto,mailContent,"Dra"));
         mailMain.refreshTable();
         mailMain.cleanMailInfo();
     }
     public void setMail(String mailServer){
+        String tempr = "";
+        String temps = "";
         String tempt = "";
+        this.to = new ArrayList<String>();
+        this.csto = new ArrayList<String>();
+        this.bcsto = new ArrayList<String>();
         //设置邮件服务器、发件人地址、收件人地址
         this.mailServer = mailServer;
         this.from = mailMain.getUser().getUserName();
-        String[] tempS =this.receiverText.getText().split(",");
-        for(String t: tempS){
+        String[] tempR =this.receiverText.getText().split(",");
+        for(String t: tempR){
             this.to.add(t);
         }
         for(String t:to){
+            tempr = "<"+t+">" +" " + tempr;
+        }
+        String[] tempS =this.csText.getText().split(",");
+        for(String t: tempS){
+            this.csto.add(t);
+        }
+        for(String t:csto){
+            temps = "<"+t+">" +" " + temps;
+        }
+        String[] tempT =this.bcsText.getText().split(",");
+        for(String t: tempT){
+            this.bcsto.add(t);
+        }
+        for(String t:bcsto){
             tempt = "<"+t+">" +" " + tempt;
         }
         this.subject = this.subjectText.getText();
@@ -263,7 +321,9 @@ public class MailFrame extends JFrame{
         if(Pattern.matches(pattern,mailText)){
             System.out.println("HTML");
             mailContent = "From: " + from + "\n" +
-                    "To: " + tempt + "\n" +
+                    "To: " + tempr + "\n" +
+                    "cc: " + temps + "\n"+
+                    "Bcc: " + tempt + "\n"+
                     "Subject: " + subject +"\n"+
                     "Content-Type: "+"Text/html"+"\n\n" +
                     mailText + "\n";
@@ -271,7 +331,9 @@ public class MailFrame extends JFrame{
         else{
             System.out.println("Text");
             mailContent = "From: " + from + "\n" +
-                    "To: " + tempt + "\n" +
+                    "To: " + tempr + "\n" +
+                    "cc: " + temps + "\n"+
+                    "Bcc: " + tempt + "\n"+
                     "Subject: " + subject + "\n\n" +
                     mailText + "\n";
         }

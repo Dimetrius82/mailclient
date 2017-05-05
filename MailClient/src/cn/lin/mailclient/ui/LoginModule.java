@@ -55,7 +55,6 @@ public class LoginModule extends JFrame{
 
         this.mailServer = "smtp.163.com";
         this.response = "";
-        this.setLayout(new FlowLayout());
         this.pictureBox.add(Box.createHorizontalStrut(30));
         this.pictureBox.add(pictureLabel);
         this.pictureBox.add(Box.createHorizontalStrut(30));
@@ -134,6 +133,7 @@ public class LoginModule extends JFrame{
             response = inFromServer.readLine();
             outToServer.println(encoderPwd);
             response = inFromServer.readLine();
+            System.out.println(response);
             if(response.contains("235 Authentication successful")){
                 File file = new File("data"+File.separator+user.getUserName());
                 if(!file.exists()){
@@ -145,14 +145,13 @@ public class LoginModule extends JFrame{
                     if(!configFile.exists()){
                         configFile.createNewFile();
                     }
-                    String data = String.valueOf(new Date());
                     String user = this.user.getUserName();
                     String pass = this.user.getPassWord();
                     System.out.println(configFile.getAbsoluteFile());
-                    FileWriter fileWrite = new FileWriter(configFile.getAbsoluteFile(),true);
+                    FileWriter fileWrite = new FileWriter(configFile.getAbsoluteFile());
                     BufferedWriter bufferedWriter = new BufferedWriter(fileWrite);
-                    System.out.println(data + "\n"+user+"\n"+pass);
-                    bufferedWriter.write(data + "\n"+user+"\n"+pass);
+                    System.out.println("user: "+user+"\n"+pass);
+                    bufferedWriter.write("user: "+user+"\n"+"password: "+pass+"\n");
                     bufferedWriter.close();
                 }catch (IOException e){
                     e.printStackTrace();

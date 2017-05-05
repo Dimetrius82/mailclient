@@ -9,6 +9,6 @@ import static cn.lin.util.SwingConsole.*;
 public class MainClient {
     //private static MailMain x = new MailMain();
     public static void main(String[] args){
-        run(new LoginModule(),425,300);
+        run(new LoginModule(),600,300);
     }
 }

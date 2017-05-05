@@ -12,9 +12,14 @@ public class ReceiveMail {
         String to = "";           //收件人地址
         //设置邮件服务器、发件人地址、收件人地址
         mailServer = "imap.163.com";
-        //得到本机主机名
-        String hostName = InetAddress.getLocalHost().getHostName();
-        //建立一个到邮件服务器的连接，端口号25
+        from = "hust_wanglin@163.com";
+        to = "hust_wanglin@163.com";
+        mailContent = "\n"+
+                      "Hello Joe, do you think we can meet at 3:30 tomorrow?"+"\n\n"+
+                      ")"+"\n\n"+
+                      "."+"\n\n"+
+                      ".";
+        //建立一个到邮件服务器的连接，端口号143
         Socket s = new Socket(mailServer,143);
         //将SOCKET输入流连接到带缓冲功能的
         //输入流BufferedReader，以便一次读一行来自
@@ -39,69 +44,32 @@ public class ReceiveMail {
         System.out.println("MailServer:" + response);
 
         //测试
-        outToServer.println("A01 LIST \"\" * ");
 
-        //读入来自服务器的应答，并显示在屏幕上
-        for(int i = 0;i < 9;i ++){
-            response = inFromServer.readLine();
-            System.out.print("MailServer:" + response + "\n");   
-        }
-        outToServer.println("A02 SELECT INBOX");
-        for(int i = 0;i < 6;i ++){
-            response = inFromServer.readLine();
-            System.out.print("MailServer:" + response + "\n");   
-        }
-        outToServer.println("A03 FETCH 19 BODY[HEADER.FIELDS (FROM)]");
+        System.out.println("Client : " + "A02 append &g0l6P3ux- (\\draft) {310}");
+        outToServer.println("A02 append &g0l6P3ux- (\\draft) {310}");
+                            //"Date: Mon, 7 Feb 1994 21:52:25 -0800 (PST)"+"\n"+
+                            //"From: hust_wanglin <hust_wanglin@163.com>" + "\n"+
+                            //"Subject: afternoon meeting"+"\n"+
+                            //"To: hust_wanglin@163.com"+"\n"+
+                            //"Message-Id: B27397-0100000@163.com"+"\n"+
+                            //"MIME-Version: 1.0" + "\n" +
+                            //"Content-Type: TEXT/PLAIN; CHARSET=US-ASCII" + "\n" +
+                            //mailContent
+                            //);
         response = inFromServer.readLine();
         System.out.print("MailServer:" + response + "\n");   
+        //outToServer.println("Date: Mon, 7 Feb 1994 21:52:25 -0800 (PST)");
+        //outToServer.println("From: hust_wanglin <hust_wanglin@163.com>");
+        //outToServer.println("Subject: afternoon meeting");
+        //outToServer.println("To: hust_wanglin@163.com");
+        //outToServer.println("Message-Id: B27397-0100000@163.com");
+        //outToServer.println("MIME-Version: 1.0");
+        //outToServer.println("Content-Type: TEXT/PLAIN; CHARSET=US-ASCII");
+        //outToServer.println(mailContent);
         response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine(); System.out.print("MailServer:" + response + "\n"); 
-        outToServer.println("A04 FETCH 19 BODY[HEADER.FIELDS (TO)]");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        outToServer.println("A05 FETCH 19 BODY[HEADER.FIELDS (DATE)]");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        outToServer.println("A06 FETCH 19 BODY[HEADER.FIELDS (SUBJECT)]");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        response = inFromServer.readLine();
-        System.out.print("MailServer:" + response + "\n");
-        outToServer.println("A07 FETCH 19 BODY[1]");
-        s.shutdownOutput();
-        String c ="";
-        while((response = inFromServer.readLine())!= null){
-            c = c + response;
-            System.out.print("MailServer:" + response + "\n");
-        }
-        System.out.println(c);
+        System.out.println("MailServer:" + response);
+        //response = inFromServer.readLine();
+        //System.out.println("MailServer:" + response);
         //关闭SOCKET
         s.close();
     }

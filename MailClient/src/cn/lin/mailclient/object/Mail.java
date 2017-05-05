@@ -19,14 +19,14 @@ public class Mail {
     private List<FileObject> files;
     private String from;
 
-    public Mail(String ID, String sender, List<String> receiver, String subject, String receiveDate, String size, boolean hasRead, String content, String from) {
+    public Mail(String ID, String sender, List<String> receiver, String subject, String receiveDate, String size, List<String>ccs, String content, String from) {
         this.ID = ID;
         this.sender = sender;
         this.receiver = receiver;
         this.subject = subject;
         this.receiveDate = receiveDate;
         this.size = String.valueOf(getSize(Integer.valueOf(size)));
-        this.hasRead = hasRead;
+        this.ccs = ccs;
         this.content = content;
         this.from = from;
     }
