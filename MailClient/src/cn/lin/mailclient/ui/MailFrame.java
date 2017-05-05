@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
  * Created by strawberrylin on 17-4-18.
  */
 public class MailFrame extends JFrame{
+    private boolean label = false;
     private String mailContent = "";  //邮件报文
     private String response = "";     //来自服务器的应答
     private String mailServer = "";   //邮件服务器
@@ -61,9 +62,17 @@ public class MailFrame extends JFrame{
 
     //private MailSender mailSender;
     //事件
-    private Action send = new AbstractAction("发送") {
+    private Action send = new AbstractAction("发送RTF") {
         @Override
         public void actionPerformed(ActionEvent e) {
+            label = false;
+            send();
+        }
+    };
+    private Action sendHtml = new AbstractAction("发送HTML") {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            label = true;
             send();
         }
     };
@@ -93,7 +102,9 @@ public class MailFrame extends JFrame{
 
         //this.systemHandler = mailMain.getSystemHandler();
         //this.mailSender = mailMain.getMailSender();
-        this.toolBar.add(this.send).setToolTipText("发送");
+        this.toolBar.add(this.send).setToolTipText("发送RTF");
+        this.toolBar.addSeparator();
+        this.toolBar.add(this.sendHtml).setToolTipText("发送HTML");
         this.toolBar.addSeparator();
         this.toolBar.add(this.saveDraft).setToolTipText("保存至草稿箱");
         this.toolBar.addSeparator();
@@ -315,10 +326,7 @@ public class MailFrame extends JFrame{
         this.subject = this.subjectText.getText();
         this.mailText = this.textArea.getText();
         //设置邮件数据
-        String pattern = "<.*?>";
-        System.out.println(Pattern.matches(pattern,mailText));
-        System.out.println(mailText);
-        if(Pattern.matches(pattern,mailText)){
+        if(label){
             System.out.println("HTML");
             mailContent = "From: " + from + "\n" +
                     "To: " + tempr + "\n" +
@@ -326,7 +334,16 @@ public class MailFrame extends JFrame{
                     "Bcc: " + tempt + "\n"+
                     "Subject: " + subject +"\n"+
                     "Content-Type: "+"Text/html"+"\n\n" +
-                    mailText + "\n";
+                    "<!DOCTYPE html>\n" +
+                    "<html lang=\"en\">\n" +
+                    "<head>\n" +
+                    "    <meta charset=\"UTF-8\">\n" +
+                    "    <title>hello</title>\n" +
+                    "</head>\n" +
+                    "<body>\n" +
+                    mailText+"\n" +
+                    "</body>\n" +
+                    "</html>" + "\n";
         }
         else{
             System.out.println("Text");

@@ -66,13 +66,6 @@ public class MailMain extends JFrame{
     //系统设置界面对象
     private Setup setupFrame;
     //邮箱加载对象
-    //private MailLoader mailLoader = new MailLoaderImpl();
-    //本地中的邮件处理对象
-    //private SystemHandler systemHandler = new SystemHandlerImpl();
-    //本地中的邮件加载对象
-    //private SystemLoader systemLoader = new SystemLoaderImpl();
-    //发送邮件对象
-    //private MailSender mailSender = new MailSenderImpl();
     //当前打开的文件对象
     private Mail currentMail;
     //接收邮件的间隔, 单位毫秒
@@ -328,7 +321,7 @@ public class MailMain extends JFrame{
     private void write() {
         this.mailFrame.setVisible(true);
         this.mailFrame.setSize(850,600);
-        this.mailFrame.setLocation(300,250);
+        this.mailFrame.setLocation(500,250);
     }
 
     private void resend() {
@@ -496,7 +489,7 @@ public class MailMain extends JFrame{
 
     public void setUp(){
         this.setupFrame.setVisible(true);
-        this.setupFrame.setLocation(300,250);
+        this.setupFrame.setLocation(500,250);
     }
 
     public void refreshTable(){
@@ -797,12 +790,12 @@ public class MailMain extends JFrame{
         this.mailTextArea.append(mail.getContent());
         this.currentMail = mail;
     }
+
     //清空当前打开的邮件及对应的界面组件
     public void cleanMailInfo() {
         //设置当前打开的邮件对象为空
         this.currentMail = null;
         this.mailTextArea.setText("");
-        //this.fileList.setListData(this.emptyListData);
     }
 
     public List<Mail> getDraftMails() {
